@@ -16,6 +16,26 @@ class AlreadyInWatchlistError(Exception):
     pass
 
 
+def _is_duplicate_watchlist_error(error):
+    """Return whether an integrity error names the watchlist uniqueness rule."""
+    original_error = error.orig
+    diagnostic = getattr(original_error, "diag", None)
+    constraint_name = getattr(diagnostic, "constraint_name", None)
+
+    if constraint_name == "unique_user_film_watchlist":
+        return True
+
+    message = str(original_error).lower()
+    return (
+        "unique_user_film_watchlist" in message
+        or (
+            "unique constraint failed" in message
+            and "watchlist_entry.user_id" in message
+            and "watchlist_entry.film_id" in message
+        )
+    )
+
+
 def add_to_watchlist(user_id, film_id):
     """
     Add a film to a user's watchlist.
@@ -51,6 +71,10 @@ def add_to_watchlist(user_id, film_id):
         db.session.commit()
     except IntegrityError as error:
         db.session.rollback()
+
+        if not _is_duplicate_watchlist_error(error):
+            raise
+
         raise AlreadyInWatchlistError(
             f"Film '{film_id}' is already in this user's watchlist"
         ) from error
