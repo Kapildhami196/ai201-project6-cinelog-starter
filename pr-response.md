@@ -45,11 +45,14 @@ A watchlist is mainly used to remember films a user wants to watch next. Recent 
 I agree with the reviewer that newest-first is more useful than alphabetical order for the default view. Alphabetical sorting can help users find a known title in a long list, but recency better supports the main watchlist use case and keeps the behavior consistent across CineLog.
 
 ## Comment 6 — Rebase
-**What conflicted:**
+**What conflicted:**  
+The rebase first produced an add/add conflict in `.gitignore` because both updated `main` and my branch added that file. After the rebase completed, I also found that the watchlist model from the feature branch had not been preserved while `main` had migrated film IDs from integers to UUID strings.
 
-**How I resolved it:**
+**How I resolved it:**  
+I combined the useful `.gitignore` entries and removed the conflict markers. I then restored `WatchlistEntry` in `models.py`, added its relationships to `User` and `Film`, and defined `film_id` as `db.String(36)` so it matches the UUID-based `Film.id` on updated `main`. I also updated the watchlist service and route documentation to describe film IDs as UUID strings.
 
-**How I verified no conflict remains:**
+**How I verified no conflict remains:**  
+I ran `python -m pytest tests/ -v` and all 5 tests passed. I confirmed `git status` was clean and ran `git log --oneline --merges upstream/main..HEAD`, which returned no merge commits.
 
 ## PR Description
 
