@@ -1,12 +1,12 @@
 """
 tests/test_watchlist.py — CineLog
 
-Tests for the watchlist service.
+Tests for the watchlist service and API.
 """
 
 import pytest
 from app import create_app, db
-from models import User
+from models import Film, User
 from services.collection_service import FilmNotFoundError
 from services.watchlist_service import add_to_watchlist
 
@@ -36,6 +36,16 @@ def sample_user(app):
         return user.id
 
 
+@pytest.fixture
+def sample_film(app):
+    """Create a film for watchlist tests."""
+    with app.app_context():
+        film = Film(title="Paddington 2", year=2017, genre="Comedy")
+        db.session.add(film)
+        db.session.commit()
+        return film.id
+
+
 def test_add_to_watchlist_nonexistent_film_raises(app, sample_user):
     """
     Adding a film_id that does not exist should raise FilmNotFoundError.
@@ -48,3 +58,37 @@ def test_add_to_watchlist_nonexistent_film_raises(app, sample_user):
                 user_id=sample_user,
                 film_id=fake_film_id,
             )
+
+
+def test_add_watchlist_route_returns_404_for_missing_film(app, sample_user):
+    """The API should expose a missing film as a client error."""
+    response = app.test_client().post(
+        f"/watchlist/{sample_user}/add",
+        json={"film_id": "00000000-0000-0000-0000-000000000000"},
+    )
+
+    assert response.status_code == 404
+    assert "No film found" in response.get_json()["error"]
+
+
+def test_add_watchlist_route_returns_409_for_duplicate(
+    app,
+    sample_user,
+    sample_film,
+):
+    """The API should expose a duplicate entry as a conflict."""
+    client = app.test_client()
+    payload = {"film_id": sample_film}
+
+    first_response = client.post(
+        f"/watchlist/{sample_user}/add",
+        json=payload,
+    )
+    duplicate_response = client.post(
+        f"/watchlist/{sample_user}/add",
+        json=payload,
+    )
+
+    assert first_response.status_code == 201
+    assert duplicate_response.status_code == 409
+    assert "already in" in duplicate_response.get_json()["error"]
