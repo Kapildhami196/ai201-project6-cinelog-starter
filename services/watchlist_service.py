@@ -4,6 +4,8 @@ services/watchlist_service.py — CineLog (feature/watchlist branch)
 Business logic for the watchlist feature.
 """
 
+from sqlalchemy.exc import IntegrityError
+
 from app import db
 from models import Film, WatchlistEntry
 from services.collection_service import FilmNotFoundError
@@ -44,7 +46,15 @@ def add_to_watchlist(user_id, film_id):
 
     entry = WatchlistEntry(user_id=user_id, film_id=film_id)
     db.session.add(entry)
-    db.session.commit()
+
+    try:
+        db.session.commit()
+    except IntegrityError as error:
+        db.session.rollback()
+        raise AlreadyInWatchlistError(
+            f"Film '{film_id}' is already in this user's watchlist"
+        ) from error
+
     return entry
 
 
