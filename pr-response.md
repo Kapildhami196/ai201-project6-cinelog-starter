@@ -78,4 +78,4 @@ This pull request adds a watchlist feature to CineLog so users can save films th
 8. Submit an unknown film UUID and confirm the missing-film error is raised.
 
 ## Git Log Screenshot
-<!-- Add the screenshot file here before submission. -->
+![Clean conventional commit history](git-log-proof.png)
