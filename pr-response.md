@@ -57,7 +57,25 @@ I ran `python -m pytest tests/ -v` and all 5 tests passed. I confirmed `git stat
 ## PR Description
 
 ### Feature overview
+This pull request adds a watchlist feature to CineLog so users can save films they want to watch later, separately from films they have already watched in their collection. It includes the `WatchlistEntry` model, service functions for adding and retrieving watchlist entries, REST endpoints, duplicate protection, missing-film validation, UUID-compatible film IDs, and automated testing.
 
 ### Design decisions
+- **Default visibility:** New watchlist entries remain `public=True` because CineLog is a community-focused film application where public watchlists support sharing and film discovery. I acknowledge that this creates a privacy tradeoff for users who expect saved films to remain private.
+- **Sort order:** Watchlist entries are sorted by `date_added` descending so recently saved films appear first. This supports the primary planning use case and matches the existing collection behavior.
 
 ### Manual testing steps
+1. Create and activate the virtual environment:
+   `python3 -m venv .venv && source .venv/bin/activate`
+2. Install dependencies:
+   `python -m pip install -r requirements.txt`
+3. Run the complete test suite:
+   `python -m pytest tests/ -v`
+4. Start the Flask API:
+   `python app.py`
+5. Send a POST request to `/watchlist/<user_id>/add` with a valid film UUID.
+6. Send a GET request to `/watchlist/<user_id>` and confirm the saved film appears.
+7. Add the same film again and confirm the duplicate is rejected.
+8. Submit an unknown film UUID and confirm the missing-film error is raised.
+
+## Git Log Screenshot
+<!-- Add the screenshot file here before submission. -->
