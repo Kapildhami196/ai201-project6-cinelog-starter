@@ -72,7 +72,14 @@ def test_add_to_watchlist_integrity_error_rolls_back(
     rollback_called = False
 
     def fail_commit():
-        raise IntegrityError("INSERT", {}, Exception("unique constraint"))
+        raise IntegrityError(
+            "INSERT",
+            {},
+            Exception(
+                "UNIQUE constraint failed: "
+                "watchlist_entry.user_id, watchlist_entry.film_id"
+            ),
+        )
 
     def track_rollback():
         nonlocal rollback_called
@@ -85,6 +92,38 @@ def test_add_to_watchlist_integrity_error_rolls_back(
         with pytest.raises(AlreadyInWatchlistError):
             add_to_watchlist(user_id=sample_user, film_id=sample_film)
 
+    assert rollback_called
+
+
+def test_add_to_watchlist_unrelated_integrity_error_propagates(
+    app,
+    sample_user,
+    sample_film,
+    monkeypatch,
+):
+    """A non-duplicate integrity failure should not become a conflict."""
+    rollback_called = False
+    failure = IntegrityError(
+        "INSERT",
+        {},
+        Exception("FOREIGN KEY constraint failed"),
+    )
+
+    def fail_commit():
+        raise failure
+
+    def track_rollback():
+        nonlocal rollback_called
+        rollback_called = True
+
+    with app.app_context():
+        monkeypatch.setattr(db.session, "commit", fail_commit)
+        monkeypatch.setattr(db.session, "rollback", track_rollback)
+
+        with pytest.raises(IntegrityError) as raised_error:
+            add_to_watchlist(user_id=sample_user, film_id=sample_film)
+
+    assert raised_error.value is failure
     assert rollback_called
 
 
