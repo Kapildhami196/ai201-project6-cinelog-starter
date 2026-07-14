@@ -5,10 +5,12 @@ Tests for the watchlist service and API.
 """
 
 import pytest
+from sqlalchemy.exc import IntegrityError
+
 from app import create_app, db
 from models import Film, User
 from services.collection_service import FilmNotFoundError
-from services.watchlist_service import add_to_watchlist
+from services.watchlist_service import AlreadyInWatchlistError, add_to_watchlist
 
 
 @pytest.fixture
@@ -58,6 +60,32 @@ def test_add_to_watchlist_nonexistent_film_raises(app, sample_user):
                 user_id=sample_user,
                 film_id=fake_film_id,
             )
+
+
+def test_add_to_watchlist_integrity_error_rolls_back(
+    app,
+    sample_user,
+    sample_film,
+    monkeypatch,
+):
+    """A uniqueness race should be translated and roll back the session."""
+    rollback_called = False
+
+    def fail_commit():
+        raise IntegrityError("INSERT", {}, Exception("unique constraint"))
+
+    def track_rollback():
+        nonlocal rollback_called
+        rollback_called = True
+
+    with app.app_context():
+        monkeypatch.setattr(db.session, "commit", fail_commit)
+        monkeypatch.setattr(db.session, "rollback", track_rollback)
+
+        with pytest.raises(AlreadyInWatchlistError):
+            add_to_watchlist(user_id=sample_user, film_id=sample_film)
+
+    assert rollback_called
 
 
 def test_add_watchlist_route_returns_404_for_missing_film(app, sample_user):
