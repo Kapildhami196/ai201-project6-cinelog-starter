@@ -19,7 +19,7 @@ I followed the same pattern used by `add_to_collection()` in `services/collectio
 
 ## Comment 3 — Missing test
 **What I did:**  
-I created `tests/test_watchlist.py` and added `test_add_to_watchlist_nonexistent_film_raises`. The test creates a sample user, uses a UUID that does not exist in the `Film` table, and verifies that `add_to_watchlist()` raises `FilmNotFoundError`.
+I created `tests/test_watchlist.py` and added `test_add_to_watchlist_nonexistent_film_raises`. I modeled it after `test_add_to_collection_nonexistent_film_raises` in `tests/test_collection.py`, following the same fixture setup and `pytest.raises(FilmNotFoundError)` assertion pattern. The test creates a sample user, uses a UUID that does not exist in the `Film` table, and verifies that `add_to_watchlist()` raises `FilmNotFoundError`.
 
 **How I verified:**  
 I ran the complete suite with `python -m pytest tests/ -v`. All 5 tests passed, including the new watchlist test.
